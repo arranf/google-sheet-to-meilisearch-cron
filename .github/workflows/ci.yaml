@@ -1,0 +1,51 @@
+# https://zjor.medium.com/deploying-to-kubernetes-with-gitlab-e50c5f0a9526
+name: CI/CD
+
+on: 
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build
+    environment: production-do
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Build and push the Docker image
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: |
+            arranf/sheet-to-meilisearch:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  deploy:
+    name: Deploy
+    environment: production-do
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - uses: azure/setup-kubectl@v3
+      - run: kubectl config set-cluster k8s --server="${{secrets.SERVER}}"
+      - run: kubectl config set clusters.k8s.certificate-authority-data ${{secrets.CERTIFICATE_AUTHORITY_DATA}}
+      - run: kubectl config set-credentials github --token="${{secrets.USER_TOKEN}}"
+      - run: kubectl config set-context default --cluster=k8s --user=github
+      - run: kubectl config use-context default
+      - run: sed -i "s/<VERSION>/${{github.sha}}/g" job-patch-file.yaml
+      - run: kubectl patch cronjobs.batch sheet-to-meilisearch-cron --patch "$(cat job-patch-file.yaml)" --namespace rpg
+      - run: curl -d "Meilisearch Sheet to Cron deploy successful 😀" ntfy.sh/arranf-Ao2GYe77hLXCVKnmN9WFWpxGVYkMR52erN46BWW
+      - run: curl -d "FAILURE:\ Meilisearch Sheet to Cron deploy failure :(" ntfy.sh/arranf-Ao2GYe77hLXCVKnmN9WFWpxGVYkMR52erN46BWW
+        if: failure()
+
