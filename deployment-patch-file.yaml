@@ -1,6 +1,0 @@
-spec:
-  template:
-    spec:
-      containers:
-      - name: sheet-to-meilisearch
-        image: arranf/sheet-to-meilisearch:<VERSION>
