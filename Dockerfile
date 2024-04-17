@@ -1,4 +1,4 @@
-FROM rust:1.74.0-slim-bookworm AS builder
+FROM rust:1.77.2-slim-bookworm AS builder
 WORKDIR /usr/src/
 
 RUN USER=root cargo new sheet-to-meilisearch
