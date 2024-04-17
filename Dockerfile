@@ -1,4 +1,4 @@
-FROM rust:1.77.2-slim-bookworm AS builder
+FROM --platform=linux/amd64 rust:1.77.2-slim-bookworm AS builder
 WORKDIR /usr/src/
 
 RUN USER=root cargo new sheet-to-meilisearch
@@ -9,7 +9,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Bundle Stage
-FROM debian:bookworm-slim AS runtime
+FROM --platform=linux/amd64 debian:bookworm-slim AS runtime
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends openssl ca-certificates \
     # Clean up
