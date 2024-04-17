@@ -79,11 +79,13 @@ async fn main() -> Result<()> {
     };
     info!("Entries to add/update: {}", entries.len());
 
-    let task = index
+    index
         .delete_all_documents()
         .await
-        .expect("Failed to delete all items");
-    client.wait_for_task(task, None, None).await.unwrap();
+        .expect("Failed to delete all items")
+        .wait_for_completion(&client, None, None)
+        .await
+        .expect("Failed to wait for task to complete");
     index
         .add_documents(&entries, Some("id"))
         .await
